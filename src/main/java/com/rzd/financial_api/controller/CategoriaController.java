@@ -1,15 +1,18 @@
 package com.rzd.financial_api.controller;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-import com.rzd.financial_api.entity.Categoria;
-import com.rzd.financial_api.repository.CategoriaRepository;
-
-import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import com.rzd.financial_api.domain.entity.Categoria;
+import com.rzd.financial_api.domain.repository.CategoriaRepository;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/categorias")
@@ -24,5 +27,24 @@ public class CategoriaController {
     @GetMapping
     public List<Categoria> listar() {
         return categoriaRepository.findAll();
+    }
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED) //@Valid valida regras de negocio @NotNull
+    public ResponseEntity<Categoria> criar(@Valid @RequestBody Categoria categoria, HttpServletResponse response) {//Vicula uma requisicao HTTP ao objeto
+        Categoria categoriaSalva =  categoriaRepository.save(categoria);
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{codigo}")
+                .buildAndExpand(categoriaSalva.getCodigo()).toUri();
+        response.setHeader("Location", uri.toASCIIString());
+
+        return ResponseEntity.created(uri).body(categoriaSalva);
+    }
+
+    @GetMapping("/{codigo}")
+    public ResponseEntity<Categoria> buscarPeloCodigo(@PathVariable  Long codigo) {
+       Optional<Categoria> categoria = categoriaRepository.findById(codigo);
+       //O optional esta cheio?
+       return categoria.isPresent() ? ResponseEntity.ok(categoria.get()) : ResponseEntity.notFound().build(); //.build() é usado porque não há um corpo (objeto) para enviar de volta,
+                                                                                                                // apenas o status.
+                     //Se sim faca o seguinte                   //Caso contrario (se tiver vazio)
     }
 }

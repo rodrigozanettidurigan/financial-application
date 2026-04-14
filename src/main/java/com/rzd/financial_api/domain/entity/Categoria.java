@@ -1,4 +1,4 @@
-package com.rzd.financial_api.entity;
+package com.rzd.financial_api.domain.entity;
 
 
 import jakarta.persistence.Entity;
@@ -6,10 +6,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
 
 @Data
 
@@ -20,6 +19,8 @@ public class Categoria {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long codigo;
 
+    @NotNull
+    @Size(min = 3, max = 20)
     private String nome;
 
 }
