@@ -1,18 +1,15 @@
 package com.rzd.financial_api.controller;
 
 import com.rzd.financial_api.domain.entity.Pessoa;
-import com.rzd.financial_api.domain.repository.CategoriaRepository;
 import com.rzd.financial_api.domain.repository.PessoaRepository;
+import com.rzd.financial_api.event.RecursoCriadoEvent;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
-import java.net.URI;
-import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -22,18 +19,19 @@ public class PessoaController {
     private final PessoaRepository pessoaRepository;
 
     @Autowired
-    public PessoaController(PessoaRepository pessoaRepository, CategoriaRepository categoriaRepository) {
+    public PessoaController(PessoaRepository pessoaRepository) {
             this.pessoaRepository = pessoaRepository;
     }
+
+    @Autowired
+    private ApplicationEventPublisher publisher;
 
     @PostMapping
     public ResponseEntity<Pessoa> criar(@Valid @RequestBody Pessoa pessoa, HttpServletResponse response) {
         Pessoa pessoaSalva = pessoaRepository.save(pessoa);
-        URI uri = ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{codigo}")
-                .buildAndExpand(pessoaSalva.getCodigo()).toUri();
-        response.setHeader("Location", uri.toASCIIString());
 
-        return ResponseEntity.created(uri).body(pessoaSalva);
+        publisher.publishEvent(new RecursoCriadoEvent(this,response, pessoaSalva.getCodigo()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(pessoaSalva);
     }
 
     @GetMapping("/{codigo}")

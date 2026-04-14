@@ -1,18 +1,18 @@
 package com.rzd.financial_api.controller;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Optional;
-
+import com.rzd.financial_api.event.RecursoCriadoEvent;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.rzd.financial_api.domain.entity.Categoria;
 import com.rzd.financial_api.domain.repository.CategoriaRepository;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 
 @RestController
 @RequestMapping("/categorias")
@@ -28,15 +28,16 @@ public class CategoriaController {
     public List<Categoria> listar() {
         return categoriaRepository.findAll();
     }
+    @Autowired
+    private ApplicationEventPublisher publisher;
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED) //@Valid valida regras de negocio @NotNull
     public ResponseEntity<Categoria> criar(@Valid @RequestBody Categoria categoria, HttpServletResponse response) {//Vicula uma requisicao HTTP ao objeto
         Categoria categoriaSalva =  categoriaRepository.save(categoria);
-        URI uri = ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{codigo}")
-                .buildAndExpand(categoriaSalva.getCodigo()).toUri();
-        response.setHeader("Location", uri.toASCIIString());
 
-        return ResponseEntity.created(uri).body(categoriaSalva);
+        publisher.publishEvent(new RecursoCriadoEvent(this,response, categoriaSalva.getCodigo()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaSalva);
     }
 
     @GetMapping("/{codigo}")
