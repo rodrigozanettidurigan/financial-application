@@ -3,7 +3,7 @@ CREATE TABLE pessoa (
     nome VARCHAR(50) NOT NULL,
     logradouro VARCHAR(50) NOT NULL,
     numero VARCHAR(30) NOT NULL,
-    complemento VARCHAR(30) NOT NULL,
+    complemento VARCHAR(30),
     bairro VARCHAR(30) NOT NULL,
     cep VARCHAR(30) NOT NULL,
     cidade VARCHAR(30) NOT NULL,
