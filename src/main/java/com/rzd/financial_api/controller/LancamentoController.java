@@ -19,7 +19,7 @@ public class LancamentoController {
 
 
     private final LancamentoRepository lancamentoRepository;
-    private ApplicationEventPublisher publisher;
+    private final ApplicationEventPublisher publisher;
 
     public LancamentoController(LancamentoRepository lancamentoRepository, ApplicationEventPublisher publisher) {
         this.lancamentoRepository = lancamentoRepository;
