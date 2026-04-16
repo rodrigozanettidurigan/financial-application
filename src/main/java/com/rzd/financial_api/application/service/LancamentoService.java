@@ -21,11 +21,13 @@ public class LancamentoService {
     private LancamentoRepository lancamentoRepository;
 
     public Lancamento salvar(Lancamento lancamento) {
-        validarPessoa(lancamento);
+        Optional<Pessoa> pessoa = pessoaRepository.findById(lancamento.getPessoa().getCodigo());
+        if (pessoa.isEmpty() || pessoa.get().isInativo()) {
+            throw new PessoaInexistenteOuInativaException();
+        }
 
         return lancamentoRepository.save(lancamento);
     }
-
     public Lancamento atualizar(Long codigo, Lancamento lancamento) {
         Lancamento lancamentoSalvo = buscarLancamentoExistente(codigo);
         if (!lancamento.getPessoa().equals(lancamentoSalvo.getPessoa())) {
