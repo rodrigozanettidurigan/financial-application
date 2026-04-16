@@ -26,6 +26,7 @@ public class CategoriaController {
 
     @GetMapping
     public List<Categoria> listar() {
+
         return categoriaRepository.findAll();
     }
     @Autowired

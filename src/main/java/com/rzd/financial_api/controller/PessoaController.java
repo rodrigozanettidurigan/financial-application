@@ -1,14 +1,13 @@
 package com.rzd.financial_api.controller;
 
+import com.rzd.financial_api.application.service.PessoaService;
 import com.rzd.financial_api.domain.entity.Pessoa;
 import com.rzd.financial_api.domain.repository.PessoaRepository;
 import com.rzd.financial_api.event.RecursoCriadoEvent;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +26,9 @@ public class PessoaController {
 
     @Autowired
     private ApplicationEventPublisher publisher;
+
+    @Autowired
+    private PessoaService pessoaService;
 
     @PostMapping                            //Pegue o corpo da requisicao e transforme para esse obj java
     public ResponseEntity<Pessoa> criar(@Valid @RequestBody Pessoa pessoa, HttpServletResponse response) {
@@ -49,15 +51,15 @@ public class PessoaController {
     }
     @PutMapping("/{codigo}")
     public ResponseEntity<Pessoa> atualizar(@PathVariable Long codigo, @Valid @RequestBody Pessoa pessoa) {
-        Optional<Pessoa> pessoaSalva = pessoaRepository.findById(codigo);
-        if(pessoaSalva == null) {                   //Esperava pelo menos 1 mas foi encontrado 0
-            throw new EmptyResultDataAccessException(1);
-        }
-
-        BeanUtils.copyProperties(pessoa,pessoaSalva,"codigo");
-        pessoaRepository.save(pessoa);
-        return ResponseEntity.ok(pessoa);
+        Pessoa pessoaSalva = pessoaService.atualizar(codigo, pessoa);
+        return ResponseEntity.ok(pessoaSalva);
     }
+    @PutMapping("/{codigo}/ativo")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void atualizarPropriedadeAtivo(@PathVariable Long codigo, @RequestBody Boolean ativo) {
+        pessoaService.atualizarPropriedadeAtivo(codigo, ativo);
+    }
+
 
 
 }
