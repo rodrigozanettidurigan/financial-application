@@ -4,6 +4,7 @@ import com.rzd.financial_api.application.exception.PessoaInexistenteOuInativaExc
 import com.rzd.financial_api.application.service.LancamentoService;
 import com.rzd.financial_api.domain.entity.Lancamento;
 import com.rzd.financial_api.domain.repository.LancamentoRepository;
+import com.rzd.financial_api.domain.repository.filter.LancamentoFilter;
 import com.rzd.financial_api.event.RecursoCriadoEvent;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -41,9 +42,9 @@ public class LancamentoController {
 //    private LancamentoService lancamentoService;
 
     @GetMapping
-    public List<Lancamento> listar() {
+    public List<Lancamento> pesquisar(LancamentoFilter lancamentoFilter) {
 
-        return lancamentoRepository.findAll();
+        return lancamentoRepository.filtrar(lancamentoFilter);
     }
 
 
