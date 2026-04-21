@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
@@ -19,13 +20,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -33,6 +40,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import javax.sql.DataSource;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
@@ -49,49 +57,70 @@ public class AuthorizationServerConfig {
     }
 
     @Bean
-    public InMemoryUserDetailsManager userDetailsService(PasswordEncoder passwordEncoder) {
-        UserDetails admin = User.builder()
-                .username("admin")
-                .password(passwordEncoder.encode("admin"))
-                .roles("USER")
-                .build();
+    public JdbcUserDetailsManager userDetailsService(DataSource dataSource, PasswordEncoder passwordEncoder) {
+        org.springframework.security.provisioning.JdbcUserDetailsManager users  = new JdbcUserDetailsManager(dataSource);
 
-        return new InMemoryUserDetailsManager(admin);
+        if (!users.userExists("admin")) {
+            users.createUser(User.builder()
+                    .username("admin")
+                    .password(passwordEncoder.encode("admin"))
+                    .roles("USER")
+                    .build());
+        }
+
+        return users;
     }
 
     @Bean
-    public RegisteredClientRepository registeredClientRepository(PasswordEncoder passwordEncoder) {
-        RegisteredClient angularClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("angular")
-                .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .redirectUri("http://localhost:4200/callback")
-                .redirectUri("http://127.0.0.1:4200/callback")
-                .scope("read")
-                .scope("write")
-                .clientSettings(ClientSettings.builder()
-                        .requireProofKey(true)
-                        .requireAuthorizationConsent(false)
-                        .build())
-                .build();
+    public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
+        JdbcRegisteredClientRepository repo = new JdbcRegisteredClientRepository(jdbcTemplate);
 
-        RegisteredClient postmanClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("postman")
-                .clientSecret(passwordEncoder.encode("postman-secret"))
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .redirectUri("https://oauth.pstmn.io/v1/callback")
-                .scope("read")
-                .scope("write")
-                .clientSettings(ClientSettings.builder()
-                        .requireProofKey(false)
-                        .requireAuthorizationConsent(false)
-                        .build())
-                .build();
+        if (repo.findByClientId("angular") == null) {
+            RegisteredClient angularClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("angular")
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .redirectUri("http://localhost:4200/callback")
+                    .redirectUri("http://127.0.0.1:4200/callback")
+                    .scope("read")
+                    .scope("write")
+                    .clientSettings(ClientSettings.builder()
+                            .requireProofKey(true)
+                            .requireAuthorizationConsent(false)
+                            .build())
+                    .build();
+            repo.save(angularClient);
+        }
 
-        return new InMemoryRegisteredClientRepository(angularClient, postmanClient);
+        if(repo.findByClientId("postman") == null) {
+            RegisteredClient postmanClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("postman")
+                    .clientSecret(passwordEncoder.encode("postman-secret"))
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                    .redirectUri("https://oauth.pstmn.io/v1/callback")
+                    .scope("read")
+                    .scope("write")
+                    .clientSettings(ClientSettings.builder()
+                            .requireProofKey(false)
+                            .requireAuthorizationConsent(false)
+                            .build())
+                    .build();
+            repo.save(postmanClient);
+        }
+        return repo;
     }
+    @Bean
+    public OAuth2AuthorizationService authorizationService(JdbcTemplate jdbcTemplate, RegisteredClientRepository registeredClientRepository) {
+        return new JdbcOAuth2AuthorizationService(jdbcTemplate, registeredClientRepository);
+    }
+
+    @Bean
+    public OAuth2AuthorizationConsentService authorizationConsentService(JdbcTemplate jdbcTemplate, RegisteredClientRepository registeredClientRepository) {
+        return new JdbcOAuth2AuthorizationConsentService(jdbcTemplate, registeredClientRepository);
+    }
+
 
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
