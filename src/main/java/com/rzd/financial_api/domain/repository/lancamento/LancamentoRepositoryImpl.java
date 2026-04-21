@@ -71,7 +71,7 @@ public class LancamentoRepositoryImpl implements LancamentoRepositoryQuery {
         criteria.where(predicates);
         criteria.select(builder.count(root));
 
-        return manager.createQuery(criteria).getSingleResult(ntar);
+        return manager.createQuery(criteria).getSingleResult();
 
     }
 
