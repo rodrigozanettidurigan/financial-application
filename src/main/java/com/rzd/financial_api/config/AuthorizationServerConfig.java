@@ -14,8 +14,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -132,12 +132,22 @@ public class AuthorizationServerConfig {
     @Order(3)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/logout"))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/login").permitAll()
                         .anyRequest().authenticated()
                 )
-                .formLogin(Customizer.withDefaults());
+                .formLogin(Customizer.withDefaults())
+                .logout(logout -> logout
+                .logoutUrl("/logout")
+                .invalidateHttpSession(true)
+                .clearAuthentication(true)
+                .deleteCookies("JSESSIONID")
+                .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)
+                )
 
+        );
         return http.build();
     }
 
