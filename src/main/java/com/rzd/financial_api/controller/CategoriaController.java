@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.rzd.financial_api.domain.entity.Categoria;
 import com.rzd.financial_api.domain.repository.CategoriaRepository;
@@ -23,7 +24,6 @@ public class CategoriaController {
     public CategoriaController(CategoriaRepository categoriaRepository) {
         this.categoriaRepository = categoriaRepository;
     }
-
     @GetMapping
     public List<Categoria> listar() {
 
@@ -32,6 +32,7 @@ public class CategoriaController {
     @Autowired
     private ApplicationEventPublisher publisher;
 
+    @PreAuthorize("hasAuthority('ROLE_CADASTRAR_CATEGORIA')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED) //@Valid valida regras de negocio @NotNull
     public ResponseEntity<Categoria> criar(@Valid @RequestBody Categoria categoria, HttpServletResponse response) {//Vicula uma requisicao HTTP ao objeto

@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -42,23 +43,23 @@ public class LancamentoController {
 
 //    @Autowired
 //    private LancamentoService lancamentoService;
-
+    @PreAuthorize("hasAuthority('ROLE_PESQUISAR_LANCAMENTO')")
     @GetMapping
     public Page<Lancamento> pesquisar(LancamentoFilter lancamentoFilter, Pageable pageable) {
 
         return lancamentoRepository.filtrar(lancamentoFilter, pageable);
     }
 
-
+    @PreAuthorize("hasAuthority('ROLE_CADASTRAR_LANCAMENTO')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Lancamento> criar(@Valid @RequestBody Lancamento lancamento, HttpServletResponse response) {
-        Lancamento lancamentoSalvo = lancamentoRepository.save(lancamento);
+        Lancamento lancamentoSalvo = lancamentoService.salvar(lancamento);
 
         publisher.publishEvent(new RecursoCriadoEvent(this,response, lancamentoSalvo.getCodigo()));
         return ResponseEntity.status(HttpStatus.CREATED).body(lancamentoSalvo);
     }
-
+    @PreAuthorize("hasAuthority('ROLE_PESQUISAR_LANCAMENTO')")
     @GetMapping("/{codigo}")
     public ResponseEntity<Lancamento> buscarPeloCodigo(@PathVariable Long codigo) {
         return lancamentoRepository.findById(codigo)
@@ -73,7 +74,7 @@ public class LancamentoController {
         List<com.rzd.financial_api.domain.exceptionhandler.ExceptionHandler.Erro> erros = Arrays.asList(new com.rzd.financial_api.domain.exceptionhandler.ExceptionHandler.Erro(mensagemUsuario, mensagemDesenvolvedor));
         return ResponseEntity.badRequest().body(erros);
     }
-
+    @PreAuthorize("hasAuthority('ROLE_REMOVER_LANCAMENTO')")
     @DeleteMapping("/{codigo}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remover(@PathVariable Long codigo) {
