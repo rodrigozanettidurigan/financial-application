@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,7 +24,8 @@ public class PessoaController {
 
     @Autowired
     public PessoaController(PessoaRepository pessoaRepository) {
-            this.pessoaRepository = pessoaRepository;
+
+        this.pessoaRepository = pessoaRepository;
     }
 
     @Autowired
@@ -30,6 +33,13 @@ public class PessoaController {
 
     @Autowired
     private PessoaService pessoaService;
+
+    @PreAuthorize("hasAuthority('ROLE_PESQUISAR_PESSOA')")
+    @GetMapping
+    public Page<Pessoa> pesquisar(@RequestParam(required = false, defaultValue = "") String nome, Pageable pageable) {
+        return pessoaRepository.findByNome(nome, pageable);
+    }
+
     @PreAuthorize("hasAuthority('ROLE_CADASTRAR_PESSOA')")
     @PostMapping                            //Pegue o corpo da requisicao e transforme para esse obj java
     public ResponseEntity<Pessoa> criar(@Valid @RequestBody Pessoa pessoa, HttpServletResponse response) {
