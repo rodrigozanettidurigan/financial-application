@@ -3,6 +3,7 @@ package com.rzd.financial_api.domain.repository.lancamento;
 import com.rzd.financial_api.domain.entity.Lancamento;
 import com.rzd.financial_api.domain.entity.Lancamento_;
 import com.rzd.financial_api.domain.repository.filter.LancamentoFilter;
+import com.rzd.financial_api.domain.repository.projection.ResumoLancamento;
 import io.micrometer.common.util.StringUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -37,6 +38,31 @@ public class LancamentoRepositoryImpl implements LancamentoRepositoryQuery {
         return new PageImpl<>(query.getResultList(), pageable, total(lancamentoFilter));
     }
 
+    @Override
+    public Page<ResumoLancamento> resumir(LancamentoFilter lancamentoFilter, Pageable pageable) {
+      CriteriaBuilder builder = manager.getCriteriaBuilder();
+      CriteriaQuery<ResumoLancamento> criteria = builder.createQuery(ResumoLancamento.class);
+      Root<Lancamento> root = criteria.from(Lancamento.class); //Precisa fazer uma consulta de uma entidade para lancamento ( neste caso a root)
+
+      criteria.select(builder.construct(ResumoLancamento.class, //Construtor da classe ResumoLancamento))
+              root.get(Lancamento_.codigo),
+              root.get(Lancamento_.descricao),
+              root.get(Lancamento_.dataVencimento),
+              root.get(Lancamento_.dataPagamento),
+              root.get(Lancamento_.valor),
+              root.get(Lancamento_.tipo),
+              root.get(Lancamento_.categoria).get("nome"), //Acessando o nome da categoria
+              root.get(Lancamento_.pessoa).get("nome") //Acessando o nome da pessoa
+      ));
+        Predicate[] predicates = criarRestricoes(lancamentoFilter, builder, root);
+        criteria.where(predicates);
+
+        TypedQuery<ResumoLancamento> query = manager.createQuery(criteria);
+        adicionarRestricoesDePaginacao(query, pageable);
+
+        return new PageImpl<>(query.getResultList(), pageable, total(lancamentoFilter));
+    }
+
     private Predicate[] criarRestricoes(LancamentoFilter lancamentoFilter, CriteriaBuilder builder, Root<Lancamento> root) {
         List<Predicate> predicates = new java.util.ArrayList<>();
 
@@ -54,7 +80,7 @@ public class LancamentoRepositoryImpl implements LancamentoRepositoryQuery {
         }
         return predicates.toArray(new Predicate[predicates.size()]);
     }
-    private void adicionarRestricoesDePaginacao(TypedQuery<Lancamento> query,Pageable pageable) {
+    private void adicionarRestricoesDePaginacao(TypedQuery<?> query,Pageable pageable) {
         int paginaAtual = pageable.getPageNumber();
         int totalRegistrosPorPagina = pageable.getPageSize();
         int primeiroRegistroDaPagina = paginaAtual * totalRegistrosPorPagina;

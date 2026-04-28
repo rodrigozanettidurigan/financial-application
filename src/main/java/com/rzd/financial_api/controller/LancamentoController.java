@@ -5,6 +5,7 @@ import com.rzd.financial_api.application.service.LancamentoService;
 import com.rzd.financial_api.domain.entity.Lancamento;
 import com.rzd.financial_api.domain.repository.LancamentoRepository;
 import com.rzd.financial_api.domain.repository.filter.LancamentoFilter;
+import com.rzd.financial_api.domain.repository.projection.ResumoLancamento;
 import com.rzd.financial_api.event.RecursoCriadoEvent;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -44,10 +45,10 @@ public class LancamentoController {
 //    @Autowired
 //    private LancamentoService lancamentoService;
     @PreAuthorize("hasAuthority('ROLE_PESQUISAR_LANCAMENTO')")
-    @GetMapping
-    public Page<Lancamento> pesquisar(LancamentoFilter lancamentoFilter, Pageable pageable) {
+    @GetMapping(params = "resumo")
+    public Page<ResumoLancamento> resumir(LancamentoFilter lancamentoFilter, Pageable pageable) {
 
-        return lancamentoRepository.filtrar(lancamentoFilter, pageable);
+        return lancamentoRepository.resumir(lancamentoFilter, pageable);
     }
 
     @PreAuthorize("hasAuthority('ROLE_CADASTRAR_LANCAMENTO')")
